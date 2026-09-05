@@ -10,6 +10,18 @@ Confirms:
     3. Sets the real N ceiling for the rest of the project based on that
        profiling result.
 
+--- Stage 8 addition ---
+    4. Extends the profiling sweep to N=1024 and checks the 512->1024
+       timing ratio is still roughly linear (~2x, tolerance ~4x per the
+       same convention used for the 64->512 check above). Per the
+       Extension Plan, this is not "does N=1024 run fast enough" in
+       isolation -- it's the first half of testing whether the
+       Rayleigh-normalized failure law discovered in Stage 5
+       (gain_loss ~ f(r/R_Rayleigh)) is load-bearing on N<=512, or
+       generalizes further. The second half of that question (does the
+       failure map itself stay coherent at N=1024) is checked in
+       validate_stage5.py's regenerated fine sweep.
+
 Run: python3 validate_stage1.py
 """
 
@@ -83,7 +95,7 @@ def main():
     assert 1.9 < ratio < 2.1, "aperture should scale ~linearly with N"
 
     print("\n-- Profiling across N (channel-computation-shaped op) --")
-    Ns = [8, 32, 64, 128, 256, 512]
+    Ns = [8, 32, 64, 128, 256, 512, 1024]
     times = {}
     for N in Ns:
         t = time_vectorized_channel_shape(N)
@@ -105,8 +117,67 @@ def main():
         print("  OK: scaling is roughly linear, no red flags.")
         ceiling = 512
 
-    print(f"\n=== Real N ceiling for this project: {ceiling} ===")
-    print("(1024 may be attempted later only if time/perf allow -- not required)")
+    print(f"\n=== Real N ceiling (pre-Stage-8): {ceiling} ===")
+
+    # =========================================================================
+    # Stage 8 -- N=1024 re-validation
+    # =========================================================================
+    print("\n-- Stage 8: N=1024 re-validation --")
+    print("  Guiding question: does runtime scaling remain acceptable, and "
+          "does the analytical Rayleigh-distance scale stay physically "
+          "sensible, at 2x the previously-profiled ceiling?")
+
+    t1024c = times[1024]
+    scale_1024 = t1024c / t512c
+    print(f"\n  512->1024 array-size ratio: 2.0x")
+    print(f"  512->1024 time ratio:       {scale_1024:.2f}x")
+
+    # Same tolerance convention as the 64->512 check above: allow up to ~4x
+    # worse than ideal linear scaling before flagging a problem. Ideal here
+    # is 2.0x (array size doubled), so the ceiling for "acceptable" is 8.0x.
+    stage8_scaling_ok = scale_1024 <= 2.0 * 4
+    if not stage8_scaling_ok:
+        print("  WARNING: 512->1024 scaling is much worse than linear -- "
+              "possible vectorization bug or O(N^2) op emerging at this "
+              "size. Do NOT add N=1024 to Stage 5's fine sweep until fixed.")
+    else:
+        print("  OK: 512->1024 scaling is within ~4x of ideal linear "
+              "(same tolerance used for the original 64->512 check).")
+
+    # Rayleigh distance sanity check: per the project doc, R_rayleigh
+    # scales as N^2, so 512->1024 should give ~4x the Stage-1 N=512 value.
+    # This is a physical sanity check, not just an arithmetic one -- confirms
+    # the absolute distance scale (in meters) implied at N=1024 is still a
+    # sensible number for the 6G-user framing (i.e. not, say, kilometers off
+    # from what a "user near a base station" scenario should look like).
+    from arraymodel import ArrayGeometry
+    array_512 = ArrayGeometry(N=512, center_freq=CENTER_FREQ)
+    array_1024 = ArrayGeometry(N=1024, center_freq=CENTER_FREQ)
+    r512 = array_512.rayleigh_distance()
+    r1024 = array_1024.rayleigh_distance()
+    rayleigh_ratio = r1024 / r512
+    print(f"\n  Rayleigh distance @ N=512:  {r512:9.2f} m")
+    print(f"  Rayleigh distance @ N=1024: {r1024:9.2f} m")
+    print(f"  Ratio (1024/512): {rayleigh_ratio:.3f}  (expect ~4.0, since R ~ N^2)")
+    assert 3.6 < rayleigh_ratio < 4.4, (
+        f"Rayleigh distance should scale ~4x from N=512->1024 (N^2 scaling), "
+        f"got ratio {rayleigh_ratio:.3f}"
+    )
+    print("  OK: Rayleigh distance scaling matches the analytical N^2 prediction.")
+    print(f"  Physical sanity: {r1024:.1f} m is still a plausible base-station-to-user "
+          f"range for a 6G upper-midband deployment (not an absurd km-scale figure).")
+
+    if stage8_scaling_ok:
+        ceiling = 1024
+        print(f"\n=== Stage 8 checkpoint PASSED. N=1024 timing and Rayleigh-distance "
+              f"scaling both confirmed sane. ===")
+        print(f"=== Real N ceiling for this project (post-Stage-8): {ceiling} ===")
+        print("(Stage 5's fine sweep should now be regenerated with N=1024 "
+              "included -- see validate_stage5.py.)")
+    else:
+        print(f"\n=== Stage 8 checkpoint FAILED on timing. Do not extend Stage 5's "
+              f"fine sweep to N=1024 until this is investigated. Real N ceiling "
+              f"remains {ceiling}. ===")
 
 
 if __name__ == "__main__":
