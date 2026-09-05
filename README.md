@@ -5,8 +5,8 @@ what each result means, and what's left — so nothing gets lost across
 sessions. Update the status table and "Last updated" line whenever a
 stage completes.
 
-**Last updated:** after Stage 9
-**Status:** Stages 1–9, 11 complete. Stage 10, 5b, 12, 13, 14, 15 planned.
+**Last updated:** after Stage 10
+**Status:** Stages 1–11 complete (Stage 5b, 12, 13, 14, 15 remain).
 
 ---
 
@@ -46,6 +46,7 @@ specific numeric claims — not just "looks about right" plots.
 | `sensing.py` | 7 | `estimate_range` — matched-filter range estimator (scans candidate r, picks best `combined`-mode match) |
 | `multiuser.py` | 11 | Two-user near-field scenario: `two_user_channels`, `separation_db`, `delay_only_steering_vector`, `superposition_sanity_check`, `run_scenario` |
 | `hardware.py` | 9 | `quantize_phase`, `quantized_beamform` — finite-bit-depth phase-shifter constraint on top of any beamform() mode |
+| `noise.py` | 10 | `effective_output_snr`, `ber_qpsk`, `evm_from_snr` — receiver noise floor and its downstream BER/EVM consequences |
 | `validate_stage1.py` … `validate_stage11.py` | — | Checkpoint scripts, one per stage, each self-contained with `assert`s |
 
 **Shared conventions across all files** (important — see Section 6 before
@@ -167,7 +168,44 @@ extending anything):
   1 bit.
 - Results: `results/stage9_quantization.csv`, `figures/stage9_quantization.png`.
 
-### Stage 10 — SNR / Noise Floor ⬜ (not started)
+### Stage 10 — SNR / Noise Floor ✅
+- **Design-time check before building anything:** every beamformer mode
+  in this project carries identical total steering-vector energy
+  (`sum|a_n|² = N`, enforced since Stage 4). Since receiver noise is
+  independent across elements, noise power after combining is
+  `σ²·N` — **identical across every mode, at every noise level.**
+  Consequence, confirmed numerically before trusting anything further:
+  the gain-loss-in-dB gap between beamformer modes is **provably
+  independent of the noise floor** under this project's normalization
+  convention. It cannot compress or shift with SNR the way the original
+  Extension Plan wording assumed — checked directly (11.2284 dB,
+  bit-identical across a -35dB to 0dB input-SNR sweep), not just argued.
+- **So where does absolute SNR actually matter?** Not the dB-gap metric
+  itself — the downstream **nonlinear** consequence: BER and EVM. Added
+  `effective_output_snr` (signal gain / noise-after-combining, using the
+  N-invariant denominator above), `ber_qpsk` (closed-form QPSK bit error
+  rate), and `evm_from_snr` (closed-form EVM), applied at Stage 6's
+  worst-region point (N=512, 4GHz, r/Rayleigh=0.05).
+- **Key finding:** the *same* fixed 11.23dB gap has a wildly different
+  practical consequence depending on the operating point. At -20dB input
+  SNR, the combined corrector is already comfortably working
+  (BER=6.9×10⁻⁴) while conventional is nearly unusable (BER=0.19) — a
+  ~270× difference in error rate from one fixed dB gap. At -35dB, both
+  are near the BER ceiling (0.28 vs 0.44) — the practical gap genuinely
+  compresses there, even though the underlying dB number never moves.
+  This is where the plan's anticipated "noise compresses the difference
+  between modes" effect actually lives — at the BER level, not the
+  gain-loss-in-dB level.
+- **Two bugs caught and fixed while building this:** (1) a pandas gotcha
+  — naming a results column `"mode"` collided with `DataFrame.mode()`,
+  so dot-access silently returned a bound method instead of the column,
+  causing a cryptic `KeyError: False`; renamed to `"beamformer"`.
+  (2) The first SNR sweep (-5 to 40dB) was pinned too high — N=512's
+  ~54dB of array gain pushed effective SNR into "both already
+  error-free" territory almost immediately, hitting float underflow
+  before showing any real transition. Rebuilt around -35dB to 0dB, which
+  correctly brackets the BER waterfall for both modes.
+- Results: `results/stage10_noise.csv`, `figures/stage10_noise.png`.
 
 ### Stage 11 — Multi-User Near-Field Spatial Multiplexing ✅
 **Reframe:** near-field curvature as a *resource* — can two users at the
@@ -229,6 +267,8 @@ information, where far-field/angle-only beamforming structurally cannot?
 | 4/5 | Isolation-test assertions initially failed | Test conditions too mild to produce a meaningfully broken baseline | Tuned test conditions to a regime where the effect is actually large |
 | 8 | 3dB-crossing "discontinuity" flagged between N=512/1024 | Naive detector conflated the near-field crossing with a separate squint-floor breach | Diagnostic split into two mechanisms (squint floor vs. near-field-driven excess) before re-checking coherence |
 | 9 | "Recovery efficiency" metric said 1-bit phase resolution was >99% as good as ideal | Ratio metric hides absolute degradation when both sides degrade similarly — gap survives even though both are individually much worse | Added a stricter absolute-loss criterion (corrector's own loss < 1dB), which correctly identifies 2 bits as the real minimum, not 1 |
+| 10 | Naive SNR sweep (-5 to 40dB) showed BER underflowing to exact 0.0 for both modes almost immediately, no visible transition | N=512's ~54dB array gain pushed effective SNR far above the BER waterfall region even at the sweep's lowest input SNR | Rebuilt sweep around -35dB to 0dB input SNR, correctly bracketing the transition for both modes |
+| 10 | `df.mode == "combined"` silently returned `False` instead of comparing the column, causing `KeyError: False` | Column named `"mode"` collided with pandas' built-in `DataFrame.mode()` method — dot-access resolved to the method, not the column | Renamed the column to `"beamformer"` |
 | 11 | Condition C ("delay-only") showed ~0 separation, matching the angle-only baseline | `squint` mode has no `r` parameter — cannot encode range info by construction; this was a flawed test, not a real finding | Built `delay_only_steering_vector`: exact r-dependent phase, uniform amplitude |
 
 None of these were caught by "it looks about right" — every one was
@@ -239,13 +279,16 @@ caught by a specific, falsifiable numeric assertion failing.
 ## 5. Remaining / Planned Work
 
 Per the current Extension Plan, order is: **8 → 11 → 9 → 10 → 5b → 12 →
-13 → 14 → 15.** Stages 8, 9, and 11 are done; next up is Stage 10.
+13 → 14 → 15.** Stages 8, 9, 10, and 11 are all done — that completes the
+entire "low/medium effort" block. Next up is **Stage 5b**, and the
+remaining block after that (**12 → 13 → 14 → 15**) is the "genuine
+architecture extension" tier — larger, riskier lifts than anything done
+so far.
 
-- **Stage 10 — SNR/noise floor:** AWGN at the receiver, reframe gain-loss
-  as effective SNR, add BER/EVM, sweep SNR as a 4th axis.
 - **Stage 5b — Interactive dashboard:** Streamlit app, placed after
   8–11/9/10 so it has a richer result set to showcase. Reuses
-  `visualization.py`'s beam-pattern functions.
+  `visualization.py`'s beam-pattern functions. This is the last "glue/
+  presentation" stage before the bigger architecture work begins.
 - **Stage 12 — 2D UPA:** generalize `ArrayGeometry` to 2D; open question
   is the correct normalization variable in 2D (possibly
   `(r/R_Rayleigh, θ, φ, N_x/N_y)`).
@@ -273,6 +316,20 @@ Per the current Extension Plan, order is: **8 → 11 → 9 → 10 → 5b → 12 
   expect amplitude-based effects to show up unless deliberately testing
   r comparable to the aperture size itself (reactive near-field —
   outside this project's realistic 6G-user framing).
+- **The gain-loss-in-dB metric is provably SNR-independent under this
+  project's normalization.** Every beamformer mode carries identical
+  total steering-vector energy (`sum|a_n|²=N`), so noise power after
+  combining is identical across modes at any noise level — the dB gap
+  between modes cannot shift or compress with SNR. Don't expect the
+  failure map's *contours* to move once noise is added; any "noise
+  changes the picture" effect has to be looked for in a downstream
+  nonlinear quantity (BER, EVM), not in the gain-loss-in-dB number
+  itself (see Stage 10).
+- **Watch for column names that collide with pandas DataFrame methods**
+  (e.g. `"mode"` collides with `DataFrame.mode()`). Dot-access silently
+  resolves to the method instead of raising an error, producing
+  confusing downstream failures. Prefer bracket indexing (`df["col"]`)
+  for any column name that might shadow a built-in method.
 - **A "recovery efficiency" or similar ratio metric can hide absolute
   degradation.** If two quantities degrade by similar absolute amounts
   under some constraint (e.g. phase quantization), their *ratio* or
@@ -306,6 +363,7 @@ python3 validate_stage5.py    # also runs Stage 8's N=1024 extension
 python3 validate_stage6.py
 python3 validate_stage7.py
 python3 validate_stage9.py
+python3 validate_stage10.py
 python3 validate_stage11.py
 ```
 
