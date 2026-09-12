@@ -5,9 +5,9 @@ what each result means, and what's left — so nothing gets lost across
 sessions. Update the status table and "Last updated" line whenever a
 stage completes.
 
-**Last updated:** after Stage 14
-**Status:** Stages 1–14 complete except Stage 5b (abandoned — see
-Section 5). Only Stage 15 (capstone synthesis) remains.
+**Last updated:** after Stage 15 (project complete)
+**Status:** All 15 stages complete except Stage 5b (abandoned — see
+Section 5). See `SYNTHESIS.md` for the closing capstone narrative.
 
 ---
 
@@ -55,7 +55,8 @@ way; see Section 4.
 | `planar.py` | 12 | `PlanarArrayGeometry`, 2D near/far-field channel models and all 4 beamformer modes for a UPA |
 | `multipath.py` | 13 | `generate_reflector_config`, `multipath_near_field_channel` — Rician-K-factor-controlled multipath channel |
 | `hybrid.py` | 14 | `hybrid_effective_steering`, `cost_estimate_hybrid` — fully-connected hybrid analog+digital beamforming |
-| `validate_stage1.py` … `validate_stage14.py` | — | Checkpoint scripts, one per stage (no `validate_stage8.py` — Stage 8 extended `validate_stage1.py`/`validate_stage5.py` in place; no Stage 5b), each self-contained with `assert`s |
+| `synthesis.py` | 15 | `load_all_sources`, `build_all_figures` — recombines Stages 1-14's saved results into 3 headline figures, no new simulation logic |
+| `validate_stage1.py` … `validate_stage15.py` | — | Checkpoint scripts, one per stage (no `validate_stage8.py` — Stage 8 extended `validate_stage1.py`/`validate_stage5.py` in place; no Stage 5b), each self-contained with `assert`s |
 
 **Shared conventions across all files** (important — see Section 6 before
 extending anything):
@@ -326,6 +327,43 @@ N_RF chain outputs with a full complex weight per frequency.
   near N degrees of freedom.
 - Results: `results/stage14_hybrid.csv`, `figures/stage14_hybrid.png`.
 
+### Stage 15 — Capstone Synthesis ✅
+**No new simulations, no new physics, no new numeric claims** — pure
+recombination of Stages 1–14's already-validated results, per the
+Extension Plan's explicit scope for this stage.
+
+- Built `synthesis.py` (loads or, if a CSV happens to be missing on
+  disk, regenerates it by calling the *exact same* already-validated
+  function the original stage used — never new logic) and
+  `validate_stage15.py`, whose checkpoint role is different in kind
+  from every prior stage: it verifies **faithfulness to source data**
+  (e.g. "does the recombined worst-region number still read exactly
+  11.2284 dB"), not new physics.
+- Three headline figures:
+  1. **Decision map** — Stage 5/8's failure severity (Safe/Marginal/
+     Severe, using this project's own established 3dB/8dB thresholds)
+     with Stages 6/9/14's remediation options overlaid at their *exact*
+     tested coordinates only — explicitly not implying those fixes were
+     validated across the whole grid.
+  2. **Robustness** — Stage 13's multipath finding and Stage 10's
+     noise/BER finding side by side, showing the same core advantage
+     surviving two independent real-world impairments.
+  3. **Bug becomes feature** — Stage 5/8's conventional gain-loss curve
+     and Stage 11's multi-user separation curve plotted together at
+     matching (N=1024, r/Rayleigh) coordinates — both curves visibly
+     rise together as the array moves deeper into near-field, making
+     the project's central "same mechanism, opposite framing" argument
+     visual rather than just asserted.
+- Written closing narrative: `SYNTHESIS.md` — the core empirical law,
+  what fixes it and at what cost, what survives noise/multipath, what
+  generalizes (and what doesn't, cleanly), and an explicit honest scope
+  note listing everything deliberately left untested (amplitude
+  quantization, mutual coupling, non-QPSK modulations, ray-traced
+  multipath, per-axis 2D Rayleigh distances, real hardware, >2-user
+  scenarios).
+- Results: `figures/stage15_decision_map.png`, `stage15_robustness.png`,
+  `stage15_bug_to_feature.png`.
+
 ---
 
 ## 4. Bugs Caught & Fixed / Corrected Assumptions (running log)
@@ -364,18 +402,11 @@ and none are planned.
 
 ## 6. Remaining Work
 
-Only **Stage 15 (capstone synthesis)** remains. Per the Extension Plan,
-this stage introduces **no new simulations or unvalidated claims** — it
-recombines results already validated in Stages 1–14 into 2–3 headline
-summary views (e.g. a "failure + cheapest fix" decision map layering
-Stage 5/8's failure map with Stages 6/9/14's remediation costs; a
-"survives real-world conditions" overlay combining Stage 10 and 13's
-findings; a "bug becomes feature" view connecting Stage 5's
-worst-loss region to Stage 11's best-multi-user-separation region),
-plus a written synthesis document tying the whole project together —
-the core empirical law, what fixes it and at what cost, what survives
-real-world impairments, what generalizes and with what caveats, and an
-honest scope note on what was deliberately left untested.
+**None — the project is complete.** All 15 planned stages (per the final
+Extension Plan ordering: 8 → 11 → 9 → 10 → 12 → 13 → 14 → 15, with 5b
+explicitly abandoned) are done. See `SYNTHESIS.md` for the closing
+narrative tying every stage's findings together, including an honest
+scope note on what was deliberately left untested for any future work.
 
 ---
 
@@ -427,6 +458,11 @@ honest scope note on what was deliberately left untested.
 - **`CENTER_FREQ`/`THETA` are redeclared per-file, not imported from one
   place.** If either ever needs to change project-wide, it must be
   updated in every validate script and any other file that hardcodes it.
+- **Not every intermediate result CSV is guaranteed to persist across
+  sessions/sandboxes.** Stage 15's `synthesis.py` handles this by
+  checking for each file and regenerating it via the original stage's
+  own function if missing, rather than assuming it's always there — a
+  pattern worth reusing for any future recombination work.
 
 ---
 
@@ -449,6 +485,7 @@ python3 validate_stage11.py
 python3 validate_stage12.py
 python3 validate_stage13.py
 python3 validate_stage14.py
+python3 validate_stage15.py
 ```
 
 Each script prints a full checkpoint log and saves its outputs to
@@ -456,4 +493,9 @@ Each script prints a full checkpoint log and saves its outputs to
 `AssertionError` means that stage's hard gate failed — do not proceed to
 a dependent stage until it's fixed. (No `validate_stage8.py` or
 `validate_stage5b.py` exist — Stage 8 is folded into Stages 1 and 5;
-Stage 5b was abandoned, see Section 5.)
+Stage 5b was abandoned, see Section 5.) Stage 15's checkpoint verifies
+data faithfulness rather than new physics, and will regenerate any
+missing source CSVs by calling the original stage's own function before
+building its 3 summary figures.
+
+See `SYNTHESIS.md` for the project's closing written narrative.
