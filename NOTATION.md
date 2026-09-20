@@ -124,6 +124,49 @@ it; full detail lives in `beamformers.py`'s module docstring and
 
 ---
 
+## 5. The controlled ablation matrix (P1.2)
+
+Per the Minimum Viable Paper plan's P1.2, this is the literal backbone
+of the results section, made explicit rather than left for a reader to
+reconstruct from 15 stages. Curvature, wideband, and architecture are
+mechanisms that can genuinely be switched off; range cannot — every
+scenario happens at some r, so range is the continuous axis each row
+below is *evaluated across*, not a fourth on/off toggle alongside the
+other three.
+
+| Curvature | Wideband | Architecture | Range regime tested | Isolates | Code | Result file(s) | Status |
+|---|---|---|---|---|---|---|---|
+| ❌ | ❌ | digital | full r/R_R sweep | far-field narrowband baseline | `beamformers.py: conventional` | `results/fine_sweep.csv`, `results/coarse_sweep.csv` (`gain_loss_conventional_db`) | done |
+| ✅ | ❌ | digital | full r/R_R sweep | near-field curvature alone | `beamformers.py: nearfield` | same, `gain_loss_nearfield_db` | done |
+| ❌ | ✅ | digital | full r/R_R sweep | beam squint alone | `beamformers.py: squint` | same, `gain_loss_squint_db` | done |
+| ✅ | ✅ | digital | full r/R_R sweep | joint near-field + wideband (the "ideal" reference) | `beamformers.py: combined` | same, all three gain_loss columns are measured *relative to* this row | done |
+| ✅ | ✅ | hybrid (this project's, fully-connected) | Safe/Marginal/Severe (Stage 15 decision map; currently 1 operating point, see P4.1) | practical implementation, this project's architecture | `hybrid.py` | `results/stage14_hybrid.csv`, `figures/stage14_hybrid.png` | done (single operating point) |
+| ✅ | ✅ | hybrid (external baseline, e.g. OMP) | Safe/Marginal/Severe | practical implementation, literature architecture | **does not exist** | — | **CONDITIONAL — gated by P5a, see plan Section P3** |
+
+Each of the first four rows is measured across the same grid, run by
+`sweep.py: run_sweep` and persisted in `results/fine_sweep.csv` (480
+points: N ∈ {8,16,32,64,128,256,512,1024} × bandwidth ∈
+{10MHz,100MHz,400MHz,1GHz,2GHz,4GHz} × r/R_R ∈
+{0.02,0.05,0.1,0.2,0.5,1,2,5,10,20}) and `results/coarse_sweep.csv` (27
+points, a coarser version of the same grid, N ∈ {8,128,512}). The
+`figures/stage5_failure_map.png` visualization of this grid is the
+project's core empirical-law figure (`SYNTHESIS.md` Section 2).
+
+The fifth row (this project's hybrid architecture) was validated at one
+worst-case operating point only (N=512, 4GHz, r/R_R ∈
+{0.02,0.05,0.1}) — see P4.1 in the plan for extending this to a
+3-point Safe/Marginal/Severe coverage check, and Section 3 of
+`SYNTHESIS.md` for the explicit scope caveat that this is "a concrete,
+proven existence result at this operating point," not a claim that
+generalizes across the whole grid.
+
+The sixth row genuinely does not exist in the codebase (confirmed: no
+OMP or other competing hybrid-precoding baseline is implemented
+anywhere). Per the plan, whether it's worth building is not decided —
+that's what P5a (preliminary literature reconnaissance) is for.
+
+---
+
 *This document supersedes no other file's content — it collects and
-cross-references, per the plan's P1.1 scope. Source of truth for any
-discrepancy remains the code itself and `README.md`/`SYNTHESIS.md`.*
+cross-references, per the plan's P1.1/P1.2 scope. Source of truth for
+any discrepancy remains the code itself and `README.md`/`SYNTHESIS.md`.*
