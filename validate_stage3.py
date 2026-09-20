@@ -22,8 +22,7 @@ from arraymodel import C, ArrayGeometry
 from channel import near_field_channel
 from beamformers import conventional_steering_vector, beamform_gain
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
+from constants import CENTER_FREQ, THETA
 NARROWBAND_HZ = 1e6  # 1 MHz -- effectively a single tone for this "easy" check
 
 

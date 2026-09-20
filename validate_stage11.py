@@ -41,8 +41,7 @@ import matplotlib.pyplot as plt
 from arraymodel import ArrayGeometry
 from multiuser import run_scenario, superposition_sanity_check
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
+from constants import CENTER_FREQ, THETA
 N = 1024                 # Stage 8's validated ceiling
 WIDEBAND_BANDWIDTH = 2e9  # matches the "worst region" bandwidth used since Stage 6
 

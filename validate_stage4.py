@@ -27,8 +27,7 @@ from channel import near_field_channel, far_field_channel
 from beamformers import beamform, beamform_gain
 from visualization import plot_beam_pattern
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
+from constants import CENTER_FREQ, THETA
 N_TEST = 128
 
 

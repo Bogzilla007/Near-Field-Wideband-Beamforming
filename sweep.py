@@ -34,8 +34,7 @@ import pandas as pd
 from arraymodel import ArrayGeometry
 from channel import near_field_channel
 from beamformers import beamform, beamform_gain
-
-THETA = np.deg2rad(20.0)
+from constants import THETA
 
 
 def _normalize_channel(channel: np.ndarray) -> np.ndarray:

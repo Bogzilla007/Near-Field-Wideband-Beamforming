@@ -28,10 +28,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from constants import CENTER_FREQ
+
 RESULTS_DIR = "results"
 FIGURES_DIR = "figures"
-
-CENTER_FREQ = 28e9
 
 
 # ---------------------------------------------------------------------------

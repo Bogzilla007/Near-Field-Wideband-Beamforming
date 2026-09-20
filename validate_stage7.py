@@ -16,7 +16,7 @@ import pandas as pd
 from arraymodel import ArrayGeometry
 from sensing import estimate_range
 
-CENTER_FREQ = 28e9
+from constants import CENTER_FREQ
 N_TEST = 128           # matches a Stage 5 coarse sweep array size
 BANDWIDTH = 400e6       # matches a Stage 5 coarse sweep bandwidth
 R_FRACS = [0.1, 1.0, 10.0]  # exactly Stage 5's coarse distance axis

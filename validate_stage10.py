@@ -36,10 +36,7 @@ from beamformers import beamform, beamform_gain
 from sweep import gain_loss_at_point
 from noise import effective_output_snr, ber_qpsk, evm_from_snr
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
-
-# Same worst-performing region as Stage 6/9, for direct comparability.
+from constants import CENTER_FREQ, THETA
 N_WORST = 512
 BW_WORST = 4e9
 R_FRACS_WORST = [0.02, 0.05, 0.1]

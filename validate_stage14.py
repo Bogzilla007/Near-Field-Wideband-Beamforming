@@ -41,8 +41,7 @@ from channel import near_field_channel
 from beamformers import beamform, beamform_gain
 from hybrid import hybrid_effective_steering, cost_estimate_hybrid
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
+from constants import CENTER_FREQ, THETA
 
 N_WORST = 512
 BW_WORST = 4e9

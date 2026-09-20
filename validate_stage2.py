@@ -16,8 +16,7 @@ import matplotlib.pyplot as plt
 from arraymodel import C, ArrayGeometry
 from channel import far_field_channel, near_field_channel
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)  # arbitrary non-broadside angle to test generality
+from constants import CENTER_FREQ, THETA
 
 
 def normalized_error(a_near: np.ndarray, a_far: np.ndarray) -> float:
