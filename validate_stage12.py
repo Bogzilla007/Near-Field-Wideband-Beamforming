@@ -44,8 +44,7 @@ from planar import (
     beamform_planar,
 )
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
+from constants import CENTER_FREQ, THETA
 
 
 def normalized_error(a_near: np.ndarray, a_far: np.ndarray) -> float:

@@ -22,8 +22,6 @@ import pandas as pd
 
 from sweep import gain_loss_at_point
 
-CENTER_FREQ = 28e9
-
 
 def recovery_table(N: int, bandwidth: float, r_fracs: list, center_freq: float) -> pd.DataFrame:
     """Compute before/after gain and recovery statistics at each point.

@@ -40,10 +40,7 @@ from beamformers import beamform_gain
 from hardware import quantized_beamform
 from sweep import gain_loss_at_point
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
-
-# Same worst-performing region as Stage 6, for direct comparability.
+from constants import CENTER_FREQ, THETA
 N_WORST = 512
 BW_WORST = 4e9
 R_FRACS_WORST = [0.02, 0.05, 0.1]

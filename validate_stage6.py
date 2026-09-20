@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 from correction import recovery_table, cost_estimate
 
-CENTER_FREQ = 28e9
+from constants import CENTER_FREQ
 
 
 def main():

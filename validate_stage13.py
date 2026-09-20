@@ -38,10 +38,7 @@ from beamformers import beamform, beamform_gain
 from multipath import generate_reflector_config, multipath_near_field_channel
 from sweep import gain_loss_at_point
 
-CENTER_FREQ = 28e9
-THETA = np.deg2rad(20.0)
-
-# Same worst-performing region as Stage 6/9/10, for direct comparability.
+from constants import CENTER_FREQ, THETA
 N_WORST = 512
 BW_WORST = 4e9
 R_FRAC_WORST = 0.05

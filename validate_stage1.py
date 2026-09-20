@@ -31,7 +31,7 @@ import numpy as np
 
 from arraymodel import C, generate_setup
 
-CENTER_FREQ = 28e9  # 28 GHz, upper-midband-ish 6G reference point
+from constants import CENTER_FREQ
 BANDWIDTH = 400e6
 
 

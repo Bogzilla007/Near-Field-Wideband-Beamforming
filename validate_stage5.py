@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 
 from sweep import run_sweep
 
-CENTER_FREQ = 28e9
+from constants import CENTER_FREQ
 
 
 def main():
